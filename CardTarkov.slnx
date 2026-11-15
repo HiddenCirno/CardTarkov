@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CardTarkov.Core/CardTarkov.Core.csproj" />
+  <Project Path="CardTarkov.Tests/CardTarkov.Tests.csproj" />
+</Solution>
