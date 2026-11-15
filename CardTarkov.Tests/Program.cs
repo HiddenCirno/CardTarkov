@@ -19,6 +19,7 @@ namespace CardTarkov.Tests
             Run("叫地主", TestBidding);
             Run("出牌/过牌/新一轮", TestPlayFlow);
             Run("记牌器", TestCounter);
+            Run("两家不要后领出", TestLeadAfterTwoPasses);
             Run("自对弈", TestSelfPlay);
 
             Console.WriteLine();
@@ -421,6 +422,77 @@ namespace CardTarkov.Tests
             Check(Sum(game.GetRemainingCounts(0)) ==
                   54 - game.GetHandCount(0) - game.PlayedCards.Count,
                 "叫地主后记牌器仍然守恒");
+        }
+
+        // ══════════════════ 两家不要后重新领出 ══════════════════
+
+        private static void TestLeadAfterTwoPasses()
+        {
+            for (int seed = 1; seed <= 300; seed++)
+            {
+                var game = new DdzGame(new DdzConfig { Seed = seed }, 0);
+                game.Start();
+
+                int landlord = game.CurrentPlayer;
+                game.Bid(landlord, true);
+
+                List<PokerCard> hand = game.GetHandCopy(landlord);
+                var groups = new Dictionary<int, List<PokerCard>>();
+
+                foreach (PokerCard card in hand)
+                {
+                    int rank = DdzGame.RankCode(card);
+                    if (!groups.TryGetValue(rank, out List<PokerCard> list))
+                    {
+                        list = new List<PokerCard>();
+                        groups[rank] = list;
+                    }
+                    list.Add(card);
+                }
+
+                int pairRank = 0;
+                foreach (KeyValuePair<int, List<PokerCard>> entry in groups)
+                {
+                    if (entry.Value.Count >= 2)
+                    {
+                        pairRank = entry.Key;
+                        break;
+                    }
+                }
+
+                if (pairRank == 0)
+                    continue;
+
+                var pair = new List<PokerCard>
+                {
+                    groups[pairRank][0],
+                    groups[pairRank][1]
+                };
+
+                ActionResult pairResult = game.Play(landlord, pair);
+                Check(pairResult.Success, $"seed {seed} 领出对子应该成功");
+                if (!pairResult.Success)
+                    return;
+
+                Check(game.Pass(game.CurrentPlayer).Success, "第一家不要");
+                Check(game.Pass(game.CurrentPlayer).Success, "第二家不要");
+
+                Check(game.CurrentPlayer == landlord, "两家不要后回到最后出牌人");
+                Check(game.LastMoveInfo == null, "两家不要后清空上家牌型");
+                Check(game.LastType == PokerType.None, "两家不要后可以重新领出");
+
+                List<PokerCard> remaining = game.GetHandCopy(landlord);
+                if (remaining.Count == 0)
+                    continue;
+
+                var single = new List<PokerCard> { remaining[0] };
+                ActionResult lead = game.Play(landlord, single);
+
+                Check(lead.Success, $"seed {seed} 两家不要后领出单张应该成功，实际 {lead.Error}");
+                return;
+            }
+
+            Fail("没有找到可用于测试的牌局");
         }
 
         private static int Sum(int[] values)

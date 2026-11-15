@@ -94,8 +94,6 @@ namespace CardTarkov.Client.UI
             if (_selfWidth > 0f)
                 _self.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _selfWidth);
 
-            EnsureRowWideEnough(position.x);
-
             if (!_logged && others.Count >= 2)
             {
                 _logged = true;
@@ -106,23 +104,5 @@ namespace CardTarkov.Client.UI
             }
         }
 
-        private void EnsureRowWideEnough(float tabCenterX)
-        {
-            if (_row == null)
-                return;
-
-            float pivotX = _row.pivot.x;
-            float rightEdge = _row.rect.width * (1f - pivotX);
-            float needed = tabCenterX + _selfWidth * 0.5f + 10f;
-
-            if (needed <= rightEdge)
-                return;
-
-            float delta = needed - rightEdge;
-            float multiplier = pivotX > 0.01f && pivotX < 0.99f ? 2f : 1f;
-            _row.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Horizontal,
-                _row.rect.width + delta * multiplier);
-        }
     }
 }

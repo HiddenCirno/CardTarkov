@@ -717,11 +717,25 @@ namespace CardTarkov.Client.UI
             }
 
             var cards = _selected.ToList();
+            PokerType lastType = _game.LastType;
+            List<PokerCard> lastCards = _game.GetLastCardsCopy();
+            bool leading = _game.LastMoveInfo == null;
+
             ActionResult result = _game.Play(0, cards);
+
+            Plugin.Log?.LogInfo(
+                $"[CardTarkov] 玩家出牌 {Strings.CardsText(cards)}，" +
+                $"leading={leading}，上家={lastType} {Strings.CardsText(lastCards)}，" +
+                $"结果={result.Success}/{result.Error}");
 
             if (!result.Success)
             {
-                SetStatus(Strings.Error(result.Error));
+                string extra = result.Error == GameErrors.MustBeat
+                    ? "（上家：" + Strings.TypeName(lastType) + " " +
+                      Strings.CardsText(lastCards) + "）"
+                    : "";
+
+                SetStatus(Strings.Error(result.Error) + extra);
                 return;
             }
 
@@ -824,21 +838,31 @@ namespace CardTarkov.Client.UI
             }
 
             ActionResult result;
+            string actionLog;
 
             if (_game.Phase == GamePhase.Bidding)
             {
                 bool call = BasicAi.ShouldBid(_game.GetHand(player));
                 _lastAction[player] = call ? Strings.CallLandlord : Strings.NoCall;
+                actionLog = "叫地主=" + call;
                 result = _game.Bid(player, call);
             }
             else
             {
+                PokerType lastType = _game.LastType;
+                List<PokerCard> lastCards = _game.GetLastCardsCopy();
                 AiMove move = BasicAi.ChooseMove(_game, player);
                 _lastAction[player] = move.IsPass ? Strings.Pass : Strings.Play;
+                actionLog = (move.IsPass ? "pass" : "play " + Strings.CardsText(move.Cards)) +
+                            "，last=" + lastType + " " + Strings.CardsText(lastCards);
                 result = move.IsPass
                     ? _game.Pass(player)
                     : _game.Play(player, move.Cards);
             }
+
+            Plugin.Log?.LogInfo(
+                $"[CardTarkov] AI {player} 动作：{actionLog}，结果={result.Success}/{result.Error}，" +
+                $"当前={_game.CurrentPlayer}，lastType={_game.LastType}，passCount={_game.PassCount}");
 
             _aiBusy = false;
             _aiRoutine = null;
