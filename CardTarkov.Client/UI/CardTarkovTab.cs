@@ -40,7 +40,8 @@ namespace CardTarkov.Client.UI
                 skillsTab.gameObject, skillsTab.transform.parent, false);
 
             tabObject.name = TabObjectName;
-            tabObject.transform.SetSiblingIndex(skillsTab.transform.GetSiblingIndex() + 1);
+            tabObject.SetActive(true);
+            tabObject.transform.SetAsLastSibling();
 
             Tab clonedTab = tabObject.GetComponent<Tab>();
             RemoveCopiedLocalization(tabObject, clonedTab);
@@ -57,7 +58,7 @@ namespace CardTarkov.Client.UI
             clonedTab.SetInteractable(true);
 
             RegisterTab(screen, skillsTab, clonedTab);
-            InstallRowLayout(skillsTab.transform.parent);
+            InstallPositioner(skillsTab.transform.parent, tabObject.transform);
 
             Plugin.Log?.LogInfo("[CardTarkov] 已注入棋牌室 Tab。");
             return true;
@@ -92,17 +93,19 @@ namespace CardTarkov.Client.UI
             screen._tabDictionary = tabs;
         }
 
-        private static void InstallRowLayout(Transform tabRow)
+        private static void InstallPositioner(Transform tabRow, Transform tab)
         {
-            CardTabRowLayout layout =
-                tabRow.gameObject.GetComponent<CardTabRowLayout>() ??
-                tabRow.gameObject.AddComponent<CardTabRowLayout>();
+            CardTabPositioner positioner =
+                tabRow.gameObject.GetComponent<CardTabPositioner>() ??
+                tabRow.gameObject.AddComponent<CardTabPositioner>();
 
-            layout.Initialize();
+            positioner.Initialize(tabRow, tab);
         }
 
         private static void SetAllLabels(GameObject root, string value)
         {
+            bool any = false;
+
             foreach (TMP_Text label in root.GetComponentsInChildren<TMP_Text>(true))
             {
                 if (string.IsNullOrWhiteSpace(label.text))
@@ -113,6 +116,19 @@ namespace CardTarkov.Client.UI
                 label.fontSizeMin = 10f;
                 label.fontSizeMax = label.fontSize;
                 label.enableWordWrapping = false;
+                any = true;
+            }
+
+            if (!any)
+            {
+                TMP_Text first = root.GetComponentInChildren<TMP_Text>(true);
+                if (first != null)
+                {
+                    first.text = value;
+                    first.enableAutoSizing = true;
+                    first.fontSizeMin = 10f;
+                    first.enableWordWrapping = false;
+                }
             }
         }
 
