@@ -14,3 +14,9 @@ of source or binaries containing them requires permission from the original
 author; contact the upstream repository before publishing.
 
 This project's own code is licensed under AGPL-3.0 (see `LICENSE`).
+
+## TarkFX (AGPL-3.0)
+
+The inventory tab injection approach in `CardTarkov.Client/UI` is adapted from
+the AGPL-3.0 licensed TarkFX StockMarket client.
+- https://github.com/HiddenCirno/TarkFX
